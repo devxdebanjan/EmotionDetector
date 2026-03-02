@@ -38,16 +38,6 @@ flutter run
 
 ## How to test
 
-### 1) Automated Flutter tests
-
-```bash
-flutter test
-```
-
-Current repo includes `test/widget_test.dart` as a baseline widget test.
-
-### 2) Manual feature test (recommended)
-
 1. Launch the app on Android/iOS device.
 2. Tap **Start Detection**.
 3. Grant camera permission.
