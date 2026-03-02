@@ -30,7 +30,7 @@ class _DetectionPageState extends State<DetectionPage> {
   double _confidenceScore = 1.0;
   String _lightingCondition = "Checking lighting...";
   
-  CameraLensDirection _cameraDirection = CameraLensDirection.front;
+  final CameraLensDirection _cameraDirection = CameraLensDirection.front;
   List<CameraDescription> _cameras = [];
 
   @override
@@ -51,7 +51,7 @@ class _DetectionPageState extends State<DetectionPage> {
       ResolutionPreset.low,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.nv21 // <- change this
+          ? ImageFormatGroup.nv21
           : ImageFormatGroup.bgra8888,
     );
 
@@ -69,20 +69,20 @@ class _DetectionPageState extends State<DetectionPage> {
       });
     } catch (e) {
       if (kDebugMode) {
-        print("Error initializing camera: $e");
+        debugPrint("Error initializing camera: $e");
       }
     }
   }
 
   void _analyzeLighting(CameraImage image) {
     if (image.format.group == ImageFormatGroup.yuv420) {
-      // Analyze Y plane for luminance (brightness)
       final Uint8List yPlane = image.planes[0].bytes;
       int totalLuma = 0;
-      // Sample every 10th pixel for performance
+      // Sampling every 10th pixel
       for (int i = 0; i < yPlane.length; i += 10) {
         totalLuma += yPlane[i];
       }
+
       final double avgLuma = totalLuma / (yPlane.length / 10);
       
       String newLight = "Good Lighting";
@@ -101,7 +101,7 @@ class _DetectionPageState extends State<DetectionPage> {
       // Analyze BGRA for luminance
       final Uint8List bytes = image.planes[0].bytes;
       int totalLuma = 0;
-      for (int i = 0; i < bytes.length; i += 40) { // Sample every 10th pixel (4 bytes/pixel)
+      for (int i = 0; i < bytes.length; i += 40) { // Sampling every 10th pixel (4 bytes/pixel)
         // Luma formula approx: 0.299*R + 0.587*G + 0.114*B
         totalLuma += (0.114 * bytes[i] + 0.587 * bytes[i+1] + 0.299 * bytes[i+2]).toInt();
       }
@@ -123,12 +123,12 @@ class _DetectionPageState extends State<DetectionPage> {
   }
 
   Future<void> _processImage(CameraImage image, CameraDescription camera) async {
+    debugPrint("processing image");
     _analyzeLighting(image);
-    print("processimage");
 
     final inputImage = _inputImageFromCameraImage(image, camera);
     if (inputImage == null) {
-      print("null");
+      debugPrint("Input image null");
       _isDetecting = false;
       return;
     }
@@ -136,11 +136,11 @@ class _DetectionPageState extends State<DetectionPage> {
     try {
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isNotEmpty) {
-        final face = faces.first; // only look at first face
+        final face = faces.first; 
         _analyzeEmotion(face);
-        print("face not empty");
+        debugPrint("face not empty");
       } else {
-        print("face empty");
+        debugPrint("face empty");
         setState(() {
           _currentEmotion = "No face detected";
           _confidenceScore = 0.0;
@@ -148,11 +148,11 @@ class _DetectionPageState extends State<DetectionPage> {
       }
     } catch (e) {
       if (kDebugMode) {
-        print("Error processing face: $e");
+        debugPrint("Error processing face: $e");
       }
     }
 
-    // Free up flag after a small delay to limit frame processing rate (optional, but good for performance)
+    // Freeing up flag after a small delay to limit frame processing rate
     await Future.delayed(const Duration(milliseconds: 100));
     if (mounted) {
       _isDetecting = false;
@@ -167,16 +167,16 @@ class _DetectionPageState extends State<DetectionPage> {
       String emotion = "Neutral";
       double confidence = 0.0;
       
-      if (smile > 0.6) {
+      if (smile > 0.8) {
         emotion = "Happy";
         confidence = smile;
-      } else if (eyesOpen < 0.4 && smile < 0.3) {
+      } else if (eyesOpen < 0.4 && smile < 0.1) {
         emotion = "Tired";
         confidence = 1.0 - eyesOpen;
-      } else if (eyesOpen > 0.99 && smile < 0.3) {
+      } else if (eyesOpen > 0.99 && smile < 0.1) {
         emotion = "Stressed";
         confidence = eyesOpen;
-      } else if (smile < 0.2 && eyesOpen > 0.4 && eyesOpen < 0.99) {
+      } else if (smile < 0.1 && eyesOpen > 0.4 && eyesOpen < 0.99) {
         emotion = "Sad";
         confidence = 1.0 - smile;
       } else {
