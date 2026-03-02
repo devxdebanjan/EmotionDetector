@@ -51,9 +51,10 @@ class _DetectionPageState extends State<DetectionPage> {
       ResolutionPreset.low,
       enableAudio: false,
       imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.yuv420
+          ? ImageFormatGroup.nv21 // <- change this
           : ImageFormatGroup.bgra8888,
     );
+
 
     try {
       await _cameraController!.initialize();
@@ -123,9 +124,11 @@ class _DetectionPageState extends State<DetectionPage> {
 
   Future<void> _processImage(CameraImage image, CameraDescription camera) async {
     _analyzeLighting(image);
+    print("processimage");
 
     final inputImage = _inputImageFromCameraImage(image, camera);
     if (inputImage == null) {
+      print("null");
       _isDetecting = false;
       return;
     }
@@ -135,7 +138,9 @@ class _DetectionPageState extends State<DetectionPage> {
       if (faces.isNotEmpty) {
         final face = faces.first; // only look at first face
         _analyzeEmotion(face);
+        print("face not empty");
       } else {
+        print("face empty");
         setState(() {
           _currentEmotion = "No face detected";
           _confidenceScore = 0.0;
@@ -168,10 +173,10 @@ class _DetectionPageState extends State<DetectionPage> {
       } else if (eyesOpen < 0.4 && smile < 0.3) {
         emotion = "Tired";
         confidence = 1.0 - eyesOpen;
-      } else if (eyesOpen > 0.8 && smile < 0.3) {
+      } else if (eyesOpen > 0.99 && smile < 0.3) {
         emotion = "Stressed";
         confidence = eyesOpen;
-      } else if (smile < 0.1 && eyesOpen > 0.4 && eyesOpen < 0.8) {
+      } else if (smile < 0.2 && eyesOpen > 0.4 && eyesOpen < 0.99) {
         emotion = "Sad";
         confidence = 1.0 - smile;
       } else {
@@ -187,50 +192,104 @@ class _DetectionPageState extends State<DetectionPage> {
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image, CameraDescription camera) {
-    final rotations = {
-      DeviceOrientation.portraitUp: 0,
-      DeviceOrientation.landscapeLeft: 90,
-      DeviceOrientation.portraitDown: 180,
-      DeviceOrientation.landscapeRight: 270,
-    };
+  final rotations = {
+    DeviceOrientation.portraitUp: 0,
+    DeviceOrientation.landscapeLeft: 90,
+    DeviceOrientation.portraitDown: 180,
+    DeviceOrientation.landscapeRight: 270,
+  };
 
-    final sensorOrientation = camera.sensorOrientation;
-    InputImageRotation? rotation;
-    
-    if (Platform.isIOS) {
-      rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
-    } else if (Platform.isAndroid) {
-      var rotationCompensation = rotations[DeviceOrientation.portraitUp];
-      if (rotationCompensation == null) return null;
-      if (camera.lensDirection == CameraLensDirection.front) {
-        rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
-      } else {
-        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
-      }
-      rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
+  final sensorOrientation = camera.sensorOrientation;
+  InputImageRotation? rotation;
+
+  if (Platform.isIOS) {
+    rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
+  } else if (Platform.isAndroid) {
+    var rotationCompensation = rotations[DeviceOrientation.portraitUp];
+    if (rotationCompensation == null) return null;
+    if (camera.lensDirection == CameraLensDirection.front) {
+      rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
+    } else {
+      rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
     }
-    
-    if (rotation == null) return null;
+    rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
+  }
 
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null ||
-        (Platform.isAndroid && format != InputImageFormat.nv21 && format != InputImageFormat.yuv420) ||
-        (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+  if (rotation == null || image.planes.isEmpty) return null;
+
+  Uint8List bytes;
+  InputImageFormat format;
+  int bytesPerRow;
+
+  if (Platform.isAndroid) {
+    if (image.format.group == ImageFormatGroup.nv21) {
+      bytes = image.planes.first.bytes;
+      format = InputImageFormat.nv21;
+      bytesPerRow = image.planes.first.bytesPerRow;
+    } else if (image.format.group == ImageFormatGroup.yuv420 && image.planes.length == 3) {
+      bytes = _yuv420ToNv21(image); // convert
+      format = InputImageFormat.nv21; // ML Kit expects nv21 in this path
+      bytesPerRow = image.width;
+    } else {
+      debugPrint('Unsupported Android format raw=${image.format.raw}, group=${image.format.group}');
       return null;
     }
+  } else if (Platform.isIOS) {
+    final iosFormat = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (iosFormat != InputImageFormat.bgra8888) return null;
+    bytes = image.planes.first.bytes;
+    format = InputImageFormat.bgra8888;
+    bytesPerRow = image.planes.first.bytesPerRow;
+  } else {
+    return null;
+  }
 
-    if (image.planes.isEmpty) return null;
-
-    return InputImage.fromBytes(
-      bytes: image.planes[0].bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes[0].bytesPerRow,
+  return InputImage.fromBytes(
+    bytes: bytes,
+    metadata: InputImageMetadata(
+      size: Size(image.width.toDouble(), image.height.toDouble()),
+      rotation: rotation,
+      format: format,
+      bytesPerRow: bytesPerRow,
       ),
     );
   }
+
+  Uint8List _yuv420ToNv21(CameraImage image) {
+    final width = image.width;
+    final height = image.height;
+    final yPlane = image.planes[0];
+    final uPlane = image.planes[1];
+    final vPlane = image.planes[2];
+
+    final nv21 = Uint8List(width * height + (width * height ~/ 2));
+    var offset = 0;
+
+    // Copy Y
+    for (int row = 0; row < height; row++) {
+      final rowStart = row * yPlane.bytesPerRow;
+      nv21.setRange(offset, offset + width, yPlane.bytes, rowStart);
+      offset += width;
+    }
+
+    // Interleave VU
+    final uvHeight = height ~/ 2;
+    final uvWidth = width ~/ 2;
+    final uPixelStride = uPlane.bytesPerPixel ?? 1;
+    final vPixelStride = vPlane.bytesPerPixel ?? 1;
+
+    for (int row = 0; row < uvHeight; row++) {
+      final uRow = row * uPlane.bytesPerRow;
+      final vRow = row * vPlane.bytesPerRow;
+      for (int col = 0; col < uvWidth; col++) {
+        nv21[offset++] = vPlane.bytes[vRow + col * vPixelStride];
+        nv21[offset++] = uPlane.bytes[uRow + col * uPixelStride];
+      }
+    }
+
+    return nv21;
+  }
+
 
   @override
   void dispose() {
