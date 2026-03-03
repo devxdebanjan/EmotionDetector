@@ -227,8 +227,8 @@ class _DetectionPageState extends State<DetectionPage> {
       format = InputImageFormat.nv21;
       bytesPerRow = image.planes.first.bytesPerRow;
     } else if (image.format.group == ImageFormatGroup.yuv420 && image.planes.length == 3) {
-      bytes = _yuv420ToNv21(image); // convert
-      format = InputImageFormat.nv21; // ML Kit expects nv21 in this path
+      bytes = _yuv420ToNv21(image); // converting yuv420 to nv21
+      format = InputImageFormat.nv21;
       bytesPerRow = image.width;
     } else {
       debugPrint('Unsupported Android format raw=${image.format.raw}, group=${image.format.group}');
@@ -265,14 +265,12 @@ class _DetectionPageState extends State<DetectionPage> {
     final nv21 = Uint8List(width * height + (width * height ~/ 2));
     var offset = 0;
 
-    // Copy Y
     for (int row = 0; row < height; row++) {
       final rowStart = row * yPlane.bytesPerRow;
       nv21.setRange(offset, offset + width, yPlane.bytes, rowStart);
       offset += width;
     }
 
-    // Interleave VU
     final uvHeight = height ~/ 2;
     final uvWidth = width ~/ 2;
     final uPixelStride = uPlane.bytesPerPixel ?? 1;
@@ -302,22 +300,21 @@ class _DetectionPageState extends State<DetectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Real-Time Analysis', style: TextStyle(color: Color(0xFF39FF14))),
+        title: Text('Real-Time Analysis', style: TextStyle(color: Theme.of(context).primaryColor)),
         backgroundColor: const Color(0xFF1E1E1E),
-        iconTheme: const IconThemeData(color: Color(0xFF39FF14)),
+        iconTheme: IconThemeData(color: Theme.of(context).primaryColor),
       ),
       body: Column(
         children: [
           Expanded(
             flex: 2,
             child: _cameraController == null || !_cameraController!.value.isInitialized
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF39FF14)))
+                ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
                 : Container(
                     margin: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF39FF14), width: 3),
+                      border: Border.all(color: Theme.of(context).primaryColor, width: 3),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -351,27 +348,26 @@ class _DetectionPageState extends State<DetectionPage> {
                   ),
                   Text(
                     'Emotion: $_currentEmotion',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                   LinearProgressIndicator(
                     value: _confidenceScore,
                     backgroundColor: Colors.grey[800],
-                    color: const Color(0xFF39FF14),
+                    color: Theme.of(context).primaryColor,
                     minHeight: 10,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   Text(
                     'Confidence: ${(_confidenceScore * 100).toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      color: Color(0xFF39FF14),
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
-                  )
+                  ),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),

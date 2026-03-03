@@ -26,18 +26,23 @@ class EmotionDetectorApp extends StatelessWidget {
           onSurface: Colors.white,
         ),
         textTheme: const TextTheme(
-          displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          displayLarge: TextStyle(color: Color(0xFF39FF14), fontWeight: FontWeight.bold, letterSpacing: 1.0),
           bodyLarge: TextStyle(color: Colors.white),
-          bodyMedium: TextStyle(color: Colors.grey),
+          bodyMedium: TextStyle(color:  Color.fromARGB(255, 221, 221, 221)),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF39FF14),
-            foregroundColor: Colors.black,
-            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF39FF14),
+          foregroundColor: Colors.black,
+          shadowColor: const Color(0xFF39FF14), 
+          elevation: 20,
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
             ),
           ),
         ),
