@@ -1,6 +1,6 @@
 # Emotion Detector
 
-A Flutter mobile app that uses the front camera to detect a face in real time, estimate a simple emotion label, and show a live confidence bar.
+A Flutter mobile app that uses the live camera feed to detect a face in real time, estimate a simple emotion label and show a live confidence bar.
 
 Video Demo: [here](https://www.youtube.com/watch?v=wTzAcHL_TKE)
 
@@ -8,7 +8,7 @@ Video Demo: [here](https://www.youtube.com/watch?v=wTzAcHL_TKE)
 
 - Flutter (Dart)
 - `camera` for live camera stream
-- `google_mlkit_face_detection` for on-device face detection/classification
+- `google_mlkit_face_detection` for on-device face detection
 - `permission_handler` for runtime camera permission
 
 ## How it works
@@ -49,4 +49,4 @@ flutter run
 
 ## Future Improvements
 
-- Testing on a number of users and auto adjusting thresolds for each user
+- Testing on a number of users and auto adjusting the threshold for each user
