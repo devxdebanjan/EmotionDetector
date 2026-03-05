@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'detection_page.dart';
+import 'pages/detection_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});

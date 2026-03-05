@@ -20,8 +20,7 @@ class EmotionDetectorApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF39FF14),
           secondary: Colors.grey,
-          surface: Color(0xFF1E1E1E), // Dark grey
-          background: Colors.black,
+          surface: Color(0xFF1E1E1E), 
           onPrimary: Colors.black,
           onSurface: Colors.white,
         ),
