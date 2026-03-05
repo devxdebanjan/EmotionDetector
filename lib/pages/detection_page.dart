@@ -23,6 +23,7 @@ class _DetectionPageState extends State<DetectionPage> {
   String _currentEmotion = "Neutral";
   double _confidenceScore = 1.0;
   String _lightingCondition = "Checking lighting...";
+  CameraLensDirection _currentDirection = CameraLensDirection.front;
 
   double _debugSmile = 0.0;
   double _debugFrown = 0.0;
@@ -37,7 +38,7 @@ class _DetectionPageState extends State<DetectionPage> {
 
   Future<void> _initializeCamera() async {
     await _cameraService.initialize(
-      direction: CameraLensDirection.front,
+      direction: _currentDirection,
       onFrame: (image, camera) {
         if (!_isDetecting) {
           _isDetecting = true;
@@ -46,6 +47,17 @@ class _DetectionPageState extends State<DetectionPage> {
       },
     );
     if (mounted) setState(() {});
+  }
+
+  Future<void> _switchCamera() async {
+    _isDetecting = false;
+    _cameraService.dispose();
+    setState(() {
+      _currentDirection = _currentDirection == CameraLensDirection.front
+          ? CameraLensDirection.back
+          : CameraLensDirection.front;
+    });
+    await _initializeCamera();
   }
 
   Future<void> _processImage(CameraImage image, CameraDescription camera) async {
@@ -111,6 +123,15 @@ class _DetectionPageState extends State<DetectionPage> {
         title: Text('Real-Time Analysis', style: TextStyle(color: Theme.of(context).primaryColor)),
         backgroundColor: const Color(0xFF1E1E1E),
         iconTheme: IconThemeData(color: Theme.of(context).primaryColor),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.switch_camera_outlined,
+            color: Theme.of(context).primaryColor,
+            ),
+            tooltip: 'Switch Camera',
+            onPressed: _switchCamera,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -219,7 +240,7 @@ class _DetectionPageState extends State<DetectionPage> {
                         Text('DEBUG SCORES', style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                         const SizedBox(height: 4),
                         Text(
-                          'Smile: ${_debugSmile.toStringAsFixed(3)}  |  Frown: ${_debugFrown.toStringAsFixed(3)}\nStress: ${_debugStress.toStringAsFixed(3)} | Tiredness: ${_debugTiredness.toStringAsFixed(3)}', 
+                          'Smile: ${_debugSmile.toStringAsFixed(3)}  |  Sadness: ${_debugFrown.toStringAsFixed(3)}\nStress: ${_debugStress.toStringAsFixed(3)} | Tiredness: ${_debugTiredness.toStringAsFixed(3)}', 
                           style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontFamily: 'monospace', height: 1.5),
                         ),
                         const SizedBox(height: 20),

@@ -169,7 +169,7 @@ class HomePage extends StatelessWidget {
               ),
               const SizedBox(height: 60),
               Text(
-                'v1.0.0 | Made by devxdebanjan',
+                'v1.1.0 | Made by devxdebanjan',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(fontSize: 10),
