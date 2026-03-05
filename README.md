@@ -2,6 +2,8 @@
 
 A Flutter mobile app that uses the front camera to detect a face in real time, estimate a simple emotion label, and show a live confidence bar.
 
+Video Demo: [here](https://www.youtube.com/watch?v=wTzAcHL_TKE)
+
 ## What this project uses
 
 - Flutter (Dart)
@@ -47,5 +49,4 @@ flutter run
 
 ## Future Improvements
 
-- A Switching Option between front and back camera
-- Improvements in UI
+- Testing on a number of users and auto adjusting thresolds for each user
